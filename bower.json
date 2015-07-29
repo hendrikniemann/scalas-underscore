@@ -1,0 +1,32 @@
+{
+  "name": "scalas-underscore",
+  "version": "1.0.0",
+  "homepage": "https://github.com/hendrikniemann/scalas-underscore",
+  "authors": [
+    "hendrikniemann <h.neverman@web.de>"
+  ],
+  "description": "Bringing the magic of Scala's _ function short syntax to Javascript",
+  "main": "src/index.js",
+  "moduleType": [
+    "amd",
+    "es6",
+    "node"
+  ],
+  "keywords": [
+    "_",
+    "scala",
+    "underscore",
+    "function"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "jasmine": "~2.3.4"
+  }
+}
