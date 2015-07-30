@@ -119,6 +119,26 @@ describe('_', function() {
     
     });
 
+    describe('unchained calls with placeholders', function() {
+
+      it('should map a single placeholder correctly', function() {
+        var testobj = { fun: function( arg ) { return 'arg: ' + arg } };
+
+        var result = _.fun( _ );
+
+        expect( result(testobj, 'testarg') ).toBe('arg: testarg');
+      });
+
+      it('should map two placeholders correctly', function() {
+        var testobj = { fun: function( arg1, arg2 ) { return arg1 + '-' + arg2 } };
+
+        var result = _.fun( _, _ );
+
+        expect( result(testobj, 'argument1', 'argument2') ).toBe('argument1-argument2');
+      });
+
+    });
+
   });
 
   xdescribe('function mapper', function() {
