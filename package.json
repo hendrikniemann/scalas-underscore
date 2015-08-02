@@ -2,7 +2,7 @@
   "name": "scalaunderscore",
   "version": "1.0.0",
   "description": "Bringing the magic of _ from Scala to JS",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
