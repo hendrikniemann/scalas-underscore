@@ -1,3 +1,5 @@
+'use strict';
+
 var _ = require('../src/index');
 
 describe('_', function() {
@@ -93,8 +95,6 @@ describe('_', function() {
 
         var attr2OfFunCall = _.fun().attr2;
 
-        console.log(_.fun());
-
         expect( attr1ToString(testobj) ).toBe("1");
 
         expect( attr2OfFunCall(testobj) ).toBeDefined();
@@ -141,7 +141,7 @@ describe('_', function() {
 
   });
 
-  xdescribe('function mapper', function() {
+  describe('function mapper', function() {
 
     describe('unchained functions', function() {
 
@@ -149,7 +149,8 @@ describe('_', function() {
         function sayHi( person ) {
           return 'Hi, ' + person + '!';
         }
-        var result= _( sayHi(_) );
+        var _sayHi = _(sayHi);
+        var result = _sayHi(_);
 
         expect( result('Hendrik') ).toBeDefined();
         expect( result('Hendrik') ).toBe('Hi, Hendrik!');
@@ -159,7 +160,8 @@ describe('_', function() {
         function sayGreeting( greeting, person ) {
           return greeting + ', ' + person + '!';
         }
-        var result= _( sayHi(_, _) );
+        var _sayGreeting = _(sayGreeting);
+        var result = _sayGreeting(_, _);
 
         expect( result('Hello', 'Hendrik') ).toBeDefined();
         expect( result('Hello', 'Hendrik') ).toBe('Hello, Hendrik!');
@@ -169,13 +171,15 @@ describe('_', function() {
         function sayGreeting( greeting, person ) {
           return greeting + ', ' + person + '!';
         }
-        var result= _( sayHi('Oh hi', _) );
+        var _sayGreeting = _(sayGreeting);
+        var result = _sayGreeting('Oh hi', _);
 
         expect( result('Hendrik') ).toBeDefined();
         expect( result('Hendrik') ).toBe('Oh hi, Hendrik!');
       });
 
     });
+
 
   });
 

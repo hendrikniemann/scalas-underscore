@@ -1,17 +1,30 @@
 'use strict';
 
+
+
 const is_ = Symbol('is_');
 const callStack = Symbol('call');
 const evaluate = Symbol('eval');
+const len = Symbol('length');
 
 /**
  * This function is called, when the the actual mapping starts.
  * It evaluates the result with the given arguments and the call stack.
  */
 function evalFn(args) {
-  let arglen = args.length;
   let stack = this[callStack];
+  let currArg = 0;
+
+  // get n arguments from the argument list provided to this function
+  let getArgs = function(amount) {
+    const ret = args.slice(currArg, currArg + amount);
+    currArg += amount;
+    
+    return ret;
+  };
+
   let val = args.shift();
+
   // go through call stack and apply attributes and calls
   for( let i = 0, le = stack.length; i < le; i++ ) {
     let curr = stack[i];
@@ -23,10 +36,10 @@ function evalFn(args) {
       // Replace placeholders with arguments
       for( let k = 0, al = curr.args.length; k < al; k++ ) {
         if(curr.args[k][is_]) {
-          curr.args[k] = args.shift();
+            // call the evaluation with needed amount of arguments
+            curr.args[k] = curr.args[k][evaluate]( getArgs(curr.args[k][len]) );
         }
       }
-      console.log(curr.args);
       val = val[curr.propName].apply(val, curr.args);
     } else {
       if (typeof val[curr.propName] == 'undefined') {
@@ -45,8 +58,8 @@ function evalFn(args) {
 let underscoreHandler = {
   get: function(target, propKey, receiver) {
     // trap also matches Symbol calls from this library
-    if(propKey === is_) {
-      return target[is_];
+    if([is_, len, callStack, evaluate].indexOf(propKey) >= 0) {
+      return target[propKey];
     }
     target[callStack].push({
       propName: propKey,
@@ -64,6 +77,12 @@ let underscoreHandler = {
  */
 let initialHandler = {
   get: function(target, propKey, receiver) {
+
+    // trap also matches Symbol calls from this library
+    if([is_, len, callStack, evaluate].indexOf(propKey) >= 0) {
+      return target[propKey];
+    }
+
     // Create callable function
     let _ = function _() {
       // Create array with arguments
@@ -73,6 +92,13 @@ let initialHandler = {
       if (this && this[is_]) {
         // apply arguments to the last attribute gotten
         let stack = _[callStack];
+
+        // calculate new gained length
+        for(let i = 0, arglen = args.length; i < arglen; i++) {
+          if(args[i][is_]) {
+            _[len] += args[i][len];
+          }
+        }
         stack[stack.length - 1].called = true;
         stack[stack.length - 1].args = args;
         // Proxy gets lost otherwise?
@@ -88,14 +114,45 @@ let initialHandler = {
       args: [],
     }];
     _[evaluate] = evalFn;
+    _[len] = 1;
     return new Proxy(_, underscoreHandler);
   }
 }
 
-let target = Object.create(null);
+function placeholderify(origin) {
+  return function() {
+    const bound = arguments;
+
+    return function() {
+      const args = Array.prototype.slice.call(arguments);
+      const callArgs = [];
+
+      for(let i = 0, arglen = bound.length; i < arglen; i++) {
+        if( bound[i][is_] ) {
+          callArgs.push(args.shift());
+        } else {
+          callArgs.push(bound[i]);
+        }
+      }
+
+      return origin.apply(null, callArgs);
+    };
+
+  };
+}
+
+let target = function(param) {
+  if( typeof param === 'function' ) {
+    // This function is ready to accept placeholder parameters
+    return placeholderify(param);
+  }
+};
 target[is_] = true;
-target[evaluate] = args => args[0].args[0];
+
+// identical function for single placeholders to evaluate (expects 1 param)
+target[evaluate] = id => id;
+target[len] = 1;
 
 const _ = new Proxy(target, initialHandler);
 
-export default _
+export default _;
