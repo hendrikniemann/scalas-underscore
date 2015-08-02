@@ -1,7 +1,7 @@
 // webpack.config.js
 module.exports = {
   entry: {
-    tests: './spec/tests.js',
+    index: './src/index.js',
   },
   output: {
     path: 'bin',
@@ -10,9 +10,13 @@ module.exports = {
   module: {
     loaders: [
       {
-        test: /\.jsx?$/,
+        test: /index\.js$/,
+        loader: 'expose?_',
+      },
+      {
+        test: /\.js$/,
         exclude: /(node_modules|bower_components)/,
-        loader: 'babel'
+        loader: 'babel',
       },
     ],
   },

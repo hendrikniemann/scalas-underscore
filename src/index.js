@@ -1,11 +1,27 @@
 'use strict';
 
+var _ = (function() {
 
 
-const is_ = Symbol('is_');
-const callStack = Symbol('call');
-const evaluate = Symbol('eval');
-const len = Symbol('length');
+let is_ = Symbol('is_');
+let callStack = Symbol('call');
+let evaluate = Symbol('eval');
+let len = Symbol('length');
+
+console.log(typeof Proxy );
+
+// v8 </3 Proxys with Symbols
+// @see https://github.com/tvcutsem/harmony-reflect/issues/57
+if( typeof Proxy === 'object' ) {
+  require('harmony-reflect');
+
+  is_ = 'lkjagsgislkcjbksefvksljcbkvjeghvkjhkb';
+  callStack = 'nlbhesfbialhkehbfkevjfhakjgfjgefvj';
+  evaluate = 'elfhagkjfenfvkthbkjshveehfwvcbehjvjh';
+  len = 'askejg3evfkbvwaheujjbhvbsrgjbtnblkdbjdrhvj';
+}
+
+const symbols = [is_, callStack, evaluate, len];
 
 /**
  * This function is called, when the the actual mapping starts.
@@ -58,7 +74,7 @@ function evalFn(args) {
 let underscoreHandler = {
   get: function(target, propKey, receiver) {
     // trap also matches Symbol calls from this library
-    if([is_, len, callStack, evaluate].indexOf(propKey) >= 0) {
+    if(symbols.indexOf(propKey) >= 0) {
       return target[propKey];
     }
     target[callStack].push({
@@ -150,9 +166,13 @@ let target = function(param) {
 target[is_] = true;
 
 // identical function for single placeholders to evaluate (expects 1 param)
-target[evaluate] = id => id;
+target[evaluate] = function(id) { return id[0] };
 target[len] = 1;
 
 const _ = new Proxy(target, initialHandler);
 
-export default _;
+return _;
+
+})();
+
+module.exports = _;

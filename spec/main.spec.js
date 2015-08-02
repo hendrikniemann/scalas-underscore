@@ -1,71 +1,102 @@
 'use strict';
 
-var _ = require('../src/index');
+if(!_) {
+  var _ = require('../src/index.js');
+}
+
+var testobj;
 
 describe('_', function() {
+
+  beforeEach(function() {
+    testobj = {
+      attr1: 'attr_1',
+      attr2: 2,
+      attr3: {
+        attr: 3,
+        fun1: function() {
+          return 'Correctly mapped!';
+        },
+        fun2: function( param ) {
+          return this.attr * param;
+        },
+      },
+      attr4: ['arr1', 'arr2', 'arr3', 'arr4'],
+      fun1: function() {
+        return 'Correctly mapped!';
+      },
+      fun2: function() {
+        return { attr: 'fun_2' };
+      },
+      fun3: function( param ) {
+        return 'This is a ' + param + '.';
+      },
+      fun4: function( param ) {
+        return this.attr2 * param;
+      },
+      fun5: function( param1, param2 ) {
+        return param1 + ' ' + param2;
+      },
+      funN: function () {
+        var args = Array.prototype.slice.call(arguments);
+
+        return args.reduce(function(p, n) { return p + n });
+      },
+    }
+  });
 
   describe('chainable property mapper', function() {
 
     describe('unchained calls', function() {
 
       it('should map single attributes correctly', function() {
-        var testobj = { attr: 'correctly mapped!' };
-        var result = _.attr;
+        var result = _.attr1;
         expect( result(testobj) ).toBeDefined();
-        expect( result(testobj) ).toBe('correctly mapped!');
+        expect( result(testobj) ).toBe('attr_1');
       });
 
-      it('should map a function with no arguments correctly', function() {
-        var testobj = { fun: function() { return 'correctly mapped!' } };
-        var result = _.fun();
+      it('should map single numeric attributes correctly', function() {
+        var testarr = ['correctly mapped!', 'also mapped correctly...'];
+        var result1 = _[0];
+        var result2 = _[1];
+        expect( result1(testarr) ).toBeDefined();
+        expect( result1(testarr) ).toBe('correctly mapped!');
+        expect( result2(testarr) ).toBeDefined();
+        expect( result2(testarr) ).toBe('also mapped correctly...');
+      });
+
+      it('should map a method with no arguments correctly', function() {
+        var result = _.fun1();
 
         expect( result(testobj) ).toBeDefined();
-        expect( result(testobj) ).toBe('correctly mapped!');
+        expect( result(testobj) ).toBe('Correctly mapped!');
       });
 
-      it('should map a function with one argument correctly', function() {
-        var testobj = { fun: function() { return 'correctly mapped!' } };
-        var result = _.fun();
+      it('should map a method with one argument correctly', function() {
+        var result = _.fun3('test');
 
         expect( result(testobj) ).toBeDefined();
-        expect( result(testobj) ).toBe('correctly mapped!');
+        expect( result(testobj) ).toBe('This is a test.');
       });
 
-      it('should map a function with n arguments correctly', function() {
-        var testobj = {
-          fun: function () {
-            var args = Array.prototype.slice.call(arguments);
-
-            return args.reduce(function(p, n) { return p + n });
-          },
-        };
-        
-        expect( _.fun(1, 2)(testobj) ).toBe(3);
-        expect( _.fun(1, 2, 4)(testobj) ).toBe(7);
-        expect( _.fun(1, 2, 4, 1, 7)(testobj) ).toBe(15);
+      it('should map a method with n arguments correctly', function() {
+        expect( _.funN(1, 2)(testobj) ).toBe(3);
+        expect( _.funN(1, 2, 4)(testobj) ).toBe(7);
+        expect( _.funN(1, 2, 4, 1, 7)(testobj) ).toBe(15);
       });
 
-      it('should map a function with a this reference correctly', function() {
-        var testobj = {
-          attr: 2,
-          fun: function (multipler) {
-            return multipler * this.attr;
-          },
-        };
+      it('should map a method with a this reference correctly', function() {
+        expect( _.fun4(3)(testobj) ).toBe(6);
 
-        expect( _.fun(3)(testobj) ).toBe(6);
-
-        testobj.attr = 1;
-        expect( _.fun(4)(testobj) ).toBe(4);
+        testobj.attr2 = 1;
+        expect( _.fun4(4)(testobj) ).toBe(4);
       });
       
       it('should map function attributes correctly', function() {
-        var testobj = { fun: function() { return 'correctly mapped!' } };
+        var result = _.fun1;
 
-        var result = _.fun;
-
-        // expect( (_.fun)(testobj) ).toBe( jasmine.any(Function) );
-        expect( result(testobj)() ).toBe( 'correctly mapped!' );
+        expect( result(testobj) ).toEqual( jasmine.any(Function) );
+        expect( result(testobj)() ).toBe( 'Correctly mapped!' );
       });
 
     });
@@ -73,48 +104,34 @@ describe('_', function() {
     describe('chained calls', function() {
       
       it('should map chained attributes correctly', function() {
-        var testobj = {
-          attr1: { attr2: 'correctly mapped!' },
-        };
-
-        var result = _.attr1.attr2;
+        var result = _.attr3.attr;
 
         expect( result(testobj) ).toBeDefined();
-        expect( result(testobj) ).toBe('correctly mapped!');
+        expect( result(testobj) ).toBe(3);
       });
 
-      it('should map chained function calls correctly', function() {
-        var testobj = {
-          attr1: 1,
-          fun: function() {
-            return { attr2: 'correctly mapped!' };
-          },
-        };
+      it('should map chained method calls correctly', function() {
+        var attrFun = _.attr3.fun1();
 
-        var attr1ToString = _.attr1.toString();
+        var funAttr = _.fun2().attr;
 
-        var attr2OfFunCall = _.fun().attr2;
+        expect( attrFun(testobj) ).toBeDefined();
+        expect( attrFun(testobj) ).toBe('Correctly mapped!');
 
-        expect( attr1ToString(testobj) ).toBe("1");
-
-        expect( attr2OfFunCall(testobj) ).toBeDefined();
-        expect( attr2OfFunCall(testobj) ).toBe('correctly mapped!');
+        expect( funAttr(testobj) ).toBeDefined();
+        expect( funAttr(testobj) ).toBe('fun_2');
       });
 
-      it('should map chained function calls with one argument correctly', function() {
-        var testobj = { attr: 123 };
+      it('should map chained method calls with one argument correctly', function() {
+        var result = _.attr3.fun2(3);
 
-        var result = _.attr.toString().substr(1);
-
-        expect( result(testobj) ).toBe("23");
+        expect( result(testobj) ).toBe(9);
       });
 
-      it('should map chained function calls with multiple arguments correctly', function() {
-        var testobj = { attr: 123 };
+      it('should map chained method calls with multiple arguments correctly', function() {
+        var result = _.attr1.substr(1, 2);
 
-        var result = _.attr.toString().substr(1, 1);
-
-        expect( result(testobj) ).toBe("2");
+        expect( result(testobj) ).toBe("tt");
       });
     
     });
@@ -135,6 +152,22 @@ describe('_', function() {
         var result = _.fun( _, _ );
 
         expect( result(testobj, 'argument1', 'argument2') ).toBe('argument1-argument2');
+      });
+
+    });
+
+    xdescribe('unchained calls with chained placeholders', function() {
+
+      it('should map method calls correctly', function() {
+          var testobj2 = { someAttr: 92 };
+
+          var result = _.fun()
+      });      
+
+      it('should map functions chained placeholders correctly', function() {
+        var add = _(function(a, b) { return a + b; });
+
+        expect( add(_.attr2, 7)(testobj) ).toBe(9);
       });
 
     });
@@ -179,7 +212,6 @@ describe('_', function() {
       });
 
     });
-
 
   });
 
