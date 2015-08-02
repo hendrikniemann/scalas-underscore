@@ -156,15 +156,17 @@ describe('_', function() {
 
     });
 
-    xdescribe('unchained calls with chained placeholders', function() {
+    describe('unchained calls with chained placeholders', function() {
 
       it('should map method calls correctly', function() {
           var testobj2 = { someAttr: 92 };
 
-          var result = _.fun()
+          var result = _.fun4( _.someAttr );
+
+          expect( result(testobj, testobj2) ).toBe( 184 );
       });      
 
-      it('should map functions chained placeholders correctly', function() {
+      it('should map function calls correctly', function() {
         var add = _(function(a, b) { return a + b; });
 
         expect( add(_.attr2, 7)(testobj) ).toBe(9);

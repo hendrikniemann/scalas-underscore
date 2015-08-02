@@ -8,8 +8,6 @@ let callStack = Symbol('call');
 let evaluate = Symbol('eval');
 let len = Symbol('length');
 
-console.log(typeof Proxy );
-
 // v8 </3 Proxys with Symbols
 // @see https://github.com/tvcutsem/harmony-reflect/issues/57
 if( typeof Proxy === 'object' ) {
@@ -24,20 +22,31 @@ if( typeof Proxy === 'object' ) {
 const symbols = [is_, callStack, evaluate, len];
 
 /**
+ * Small helper class to make argument handling easier
+ */
+class ArgumentPool {
+  constructor(args) {
+    this.args = args;
+    this.currArg = 0;
+
+    if(!this.args.slice) {
+      this.args = Array.prototype.slice.call(this.args);
+    }
+  }
+
+  getArgs( amount ) {
+    this.currArg += amount;
+    return this.args.slice(this.currArg - amount, this.currArg);
+  }
+}
+
+/**
  * This function is called, when the the actual mapping starts.
  * It evaluates the result with the given arguments and the call stack.
  */
 function evalFn(args) {
   let stack = this[callStack];
-  let currArg = 0;
-
-  // get n arguments from the argument list provided to this function
-  let getArgs = function(amount) {
-    const ret = args.slice(currArg, currArg + amount);
-    currArg += amount;
-    
-    return ret;
-  };
+  let pool = new ArgumentPool(args);
 
   let val = args.shift();
 
@@ -53,7 +62,7 @@ function evalFn(args) {
       for( let k = 0, al = curr.args.length; k < al; k++ ) {
         if(curr.args[k][is_]) {
             // call the evaluation with needed amount of arguments
-            curr.args[k] = curr.args[k][evaluate]( getArgs(curr.args[k][len]) );
+            curr.args[k] = curr.args[k][evaluate]( pool.getArgs(curr.args[k][len]) );
         }
       }
       val = val[curr.propName].apply(val, curr.args);
@@ -140,14 +149,15 @@ function placeholderify(origin) {
     const bound = arguments;
 
     return function() {
-      const args = Array.prototype.slice.call(arguments);
+      const pool = new ArgumentPool(arguments);
       const callArgs = [];
 
       for(let i = 0, arglen = bound.length; i < arglen; i++) {
-        if( bound[i][is_] ) {
-          callArgs.push(args.shift());
+        let arg = bound[i];
+        if( arg[is_] ) {
+          callArgs.push(arg[evaluate](pool.getArgs(arg[len])));
         } else {
-          callArgs.push(bound[i]);
+          callArgs.push(arg);
         }
       }
 
