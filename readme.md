@@ -36,21 +36,21 @@ The following examples may use this array of objects:
 
 ```javascript
 var objects = [
-  { name: 'object1',
+  { label: 'object1',
     data: { weight: 3, length: 7 } },
-  { name: 'object2',
+  { label: 'object2',
     data: { weight: 2, length: 5 } },
-  { name: 'object3',
+  { label: 'object3',
     data: { weight: 9, length: 12 } }
 ];
 ```
 
 #### Mapping single properties
 
-Properties can directly be mapped with `_.propertyName`:
+Properties can directly be mapped with `_.propertylabel`:
 
 ```javascript
-objects.map(_.name);
+objects.map(_.label);
 // => ['object1', 'object2', 'object3']
 ```
 
@@ -127,8 +127,8 @@ let descending = _(function(a, b) {
 });
 
 objects
-  .sort(descending(_.data.weight, _.data.weigth))
-  .map(_.name)
+  .sort(descending(_.data.weight, _.data.weight))
+  .map(_.label)
   .join(', ');
 // => 'object3, object1, object2'
 ```

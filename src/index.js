@@ -36,6 +36,7 @@ class ArgumentPool {
 
   getArgs( amount ) {
     this.currArg += amount;
+    console.log(this.args.slice(this.currArg - amount, this.currArg));
     return this.args.slice(this.currArg - amount, this.currArg);
   }
 }
@@ -48,7 +49,7 @@ function evalFn(args) {
   let stack = this[callStack];
   let pool = new ArgumentPool(args);
 
-  let val = args.shift();
+  let val = pool.getArgs(1)[0];
 
   // go through call stack and apply attributes and calls
   for( let i = 0, le = stack.length; i < le; i++ ) {
@@ -58,14 +59,17 @@ function evalFn(args) {
         throw new TypeError('Property ' + curr.propName +
             ' is not a function in ' + JSON.stringify(val));
       }
+      let callArgs = [];
       // Replace placeholders with arguments
       for( let k = 0, al = curr.args.length; k < al; k++ ) {
         if(curr.args[k][is_]) {
-            // call the evaluation with needed amount of arguments
-            curr.args[k] = curr.args[k][evaluate]( pool.getArgs(curr.args[k][len]) );
+          // call the evaluation with needed amount of arguments
+          callArgs.push(curr.args[k][evaluate]( pool.getArgs(curr.args[k][len]) ));
+        } else {
+          callArgs.push(curr.args[k]);
         }
       }
-      val = val[curr.propName].apply(val, curr.args);
+      val = val[curr.propName].apply(val, callArgs);
     } else {
       if (typeof val[curr.propName] == 'undefined') {
         throw new TypeError('Property ' + curr.propName +
@@ -74,6 +78,7 @@ function evalFn(args) {
       val = val[curr.propName];
     }
   }
+  console.log(val);
   return val;
 }
 
