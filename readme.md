@@ -4,7 +4,7 @@
 
 This library brings some of the syntactical sugar from Scala's short syntax for creating anonymous functions to JavaScript. These functions are often used to map Lists and Arrays.
 
-This library uses the experimental features Symbols and Proxies from ES2015 (ES6). Since Proxies can not be converted to ES5, a environment that implements Proxies is required. This is currently only the case in the newsest versions of Firefox. It also runs on iojs with the `--harmony_proxies` flag.
+This library uses the experimental features Symbols and Proxies from ES2015 (ES6). Since Proxies can not be converted to ES5, an environment that implements Proxies is required. This is currently only the case in the newsest versions of Firefox. It also runs on io.js with the `--harmony_proxies` flag.
 
 ## Installation
 
@@ -137,7 +137,7 @@ objects
 
 ### Browser
 
-Clone the repo and open the `SpecRunner.html` in your Browser.
+Clone the repo and `bower install`. Open the `SpecRunner.html` in your Browser.
 
 ### node.js / io.js
 
