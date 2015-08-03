@@ -1,5 +1,5 @@
 {
-  "name": "scalaunderscore",
+  "name": "scalas-underscore",
   "version": "1.0.0",
   "description": "Bringing the magic of _ from Scala to JS",
   "main": "src/index.js",
