@@ -59,23 +59,17 @@
 
 	var _ = (function () {
 
-	  var is_ = Symbol('is_');
-	  var callStack = Symbol('call');
-	  var evaluate = Symbol('eval');
-	  var len = Symbol('length');
+	  var intnl = Symbol('internal');
 
-	  // v8 </3 Proxys with Symbols
-	  // @see https://github.com/tvcutsem/harmony-reflect/issues/57
+	  // Shim for v8 Proxy objects since v8's implementation does not match
+	  // the ES2015 specification
 	  if (typeof Proxy === 'object') {
 	    __webpack_require__(2);
 
-	    is_ = 'lkjagsgislkcjbksefvksljcbkvjeghvkjhkb';
-	    callStack = 'nlbhesfbialhkehbfkevjfhakjgfjgefvj';
-	    evaluate = 'elfhagkjfenfvkthbkjshveehfwvcbehjvjh';
-	    len = 'askejg3evfkbvwaheujjbhvbsrgjbtnblkdbjdrhvj';
+	    // v8 </3 Proxys with Symbols
+	    // @see https://github.com/tvcutsem/harmony-reflect/issues/57
+	    intnl = 'lkjagsgislkcjbksefvksljcbkvjeghvkjhkb';
 	  }
-
-	  var symbols = [is_, callStack, evaluate, len];
 
 	  /**
 	   * Small helper class to make argument handling easier
@@ -94,15 +88,13 @@
 	    }
 
 	    /**
-	     * This function is called, when the the actual mapping starts.
-	     * It evaluates the result with the given arguments and the call stack.
+	     * the standard handler, when the target function is already created
 	     */
 
 	    _createClass(ArgumentPool, [{
 	      key: 'getArgs',
 	      value: function getArgs(amount) {
 	        this.currArg += amount;
-	        console.log(this.args.slice(this.currArg - amount, this.currArg));
 	        return this.args.slice(this.currArg - amount, this.currArg);
 	      }
 	    }]);
@@ -110,51 +102,14 @@
 	    return ArgumentPool;
 	  })();
 
-	  function evalFn(args) {
-	    var stack = this[callStack];
-	    var pool = new ArgumentPool(args);
-
-	    var val = pool.getArgs(1)[0];
-
-	    // go through call stack and apply attributes and calls
-	    for (var i = 0, le = stack.length; i < le; i++) {
-	      var curr = stack[i];
-	      if (curr.called) {
-	        if (typeof val[curr.propName] !== 'function') {
-	          throw new TypeError('Property ' + curr.propName + ' is not a function in ' + JSON.stringify(val));
-	        }
-	        var callArgs = [];
-	        // Replace placeholders with arguments
-	        for (var k = 0, al = curr.args.length; k < al; k++) {
-	          if (curr.args[k][is_]) {
-	            // call the evaluation with needed amount of arguments
-	            callArgs.push(curr.args[k][evaluate](pool.getArgs(curr.args[k][len])));
-	          } else {
-	            callArgs.push(curr.args[k]);
-	          }
-	        }
-	        val = val[curr.propName].apply(val, callArgs);
-	      } else {
-	        if (typeof val[curr.propName] == 'undefined') {
-	          throw new TypeError('Property ' + curr.propName + ' is undefined in ' + JSON.stringify(val));
-	        }
-	        val = val[curr.propName];
-	      }
-	    }
-	    console.log(val);
-	    return val;
-	  }
-
-	  /**
-	   * the standard handler, when the target function is already created
-	   */
 	  var underscoreHandler = {
 	    get: function get(target, propKey, receiver) {
 	      // trap also matches Symbol calls from this library
-	      if (symbols.indexOf(propKey) >= 0) {
-	        return target[propKey];
+	      if (propKey === intnl) {
+	        return target[intnl];
 	      }
-	      target[callStack].push({
+
+	      target[intnl].callStack.push({
 	        propName: propKey,
 	        called: false,
 	        args: []
@@ -172,8 +127,9 @@
 	    get: function get(target, propKey, receiver) {
 
 	      // trap also matches Symbol calls from this library
-	      if ([is_, len, callStack, evaluate].indexOf(propKey) >= 0) {
-	        return target[propKey];
+	      if (intnl === propKey) {
+	        // return the Symbol property then
+	        return target[intnl];
 	      }
 
 	      // Create callable function
@@ -182,14 +138,14 @@
 	        var args = Array.prototype.slice.call(arguments);
 	        // Diffentiate between mapped Function calls
 	        // an the actual mapping call
-	        if (this && this[is_]) {
+	        if (this && this[intnl]) {
 	          // apply arguments to the last attribute gotten
-	          var stack = _[callStack];
+	          var stack = _[intnl].callStack;
 
 	          // calculate new gained length
 	          for (var i = 0, arglen = args.length; i < arglen; i++) {
-	            if (args[i][is_]) {
-	              _[len] += args[i][len];
+	            if (args[i][intnl]) {
+	              _[intnl].length += args[i][intnl].length;
 	            }
 	          }
 	          stack[stack.length - 1].called = true;
@@ -197,20 +153,99 @@
 	          // Proxy gets lost otherwise?
 	          return new Proxy(_, underscoreHandler);
 	        } else {
-	          return _[evaluate](args);
+	          return _[intnl].evaluate(args);
 	        }
 	      };
-	      _[is_] = true;
-	      _[callStack] = [{
+
+	      _[intnl] = new InternalState(false, [{
 	        propName: propKey,
 	        called: false,
 	        args: []
-	      }];
-	      _[evaluate] = evalFn;
-	      _[len] = 1;
+	      }]);
+
 	      return new Proxy(_, underscoreHandler);
 	    }
 	  };
+
+	  var InternalState = (function () {
+	    function InternalState(expecting, callStack) {
+	      _classCallCheck(this, InternalState);
+
+	      this.expecting = expecting;
+	      this.length = 1;
+
+	      if (typeof callStack !== 'undefined') {
+	        this.callStack = callStack;
+	      } else {
+	        this.callStack = [];
+	      }
+	    }
+
+	    /**
+	     * Creates a wrapper around a function, so that it accepts placeholders and
+	     * creates a new function.
+	     * @param origin the function to transform
+	     */
+
+	    _createClass(InternalState, [{
+	      key: 'evaluate',
+	      value: function evaluate(args) {
+
+	        // if this is a single unnamed parameter
+	        if (this.callStack.length === 0 && this.expecting === false) {
+	          return args[0];
+	        }
+
+	        // if this is a single named parameter
+	        if (this.callStack.length === 0 && this.expecting !== false) {
+	          return args[this.expecting];
+	        }
+
+	        if (this.expecting === false) {
+	          return this.evaluateUnnamed(args);
+	        }
+	      }
+	    }, {
+	      key: 'evaluateUnnamed',
+	      value: function evaluateUnnamed(args) {
+	        var stack = this.callStack;
+
+	        var pool = new ArgumentPool(args);
+
+	        // set starting
+	        var val = pool.getArgs(1)[0];
+
+	        // go through call stack and apply attributes and calls
+	        for (var i = 0, le = stack.length; i < le; i++) {
+	          var curr = stack[i];
+	          // reduce method calls
+	          if (curr.called) {
+	            if (typeof val[curr.propName] !== 'function') {
+	              throw new TypeError('Property ' + curr.propName + ' is not a function in ' + JSON.stringify(val));
+	            }
+	            var callArgs = [];
+	            // Replace placeholders with arguments
+	            for (var k = 0, al = curr.args.length; k < al; k++) {
+	              var currArg = curr.args[k];
+	              if (currArg[intnl]) {
+	                // call the evaluation with needed amount of arguments
+	                callArgs.push(currArg[intnl].evaluate(pool.getArgs(currArg[intnl].length)));
+	              } else {
+	                callArgs.push(currArg);
+	              }
+	            }
+	            val = val[curr.propName].apply(val, callArgs);
+	          } else {
+	            // Property calls
+	            val = val[curr.propName];
+	          }
+	        }
+	        return val;
+	      }
+	    }]);
+
+	    return InternalState;
+	  })();
 
 	  function placeholderify(origin) {
 	    return function () {
@@ -222,8 +257,10 @@
 
 	        for (var i = 0, arglen = bound.length; i < arglen; i++) {
 	          var arg = bound[i];
-	          if (arg[is_]) {
-	            callArgs.push(arg[evaluate](pool.getArgs(arg[len])));
+	          if (arg[intnl]) {
+	            if (arg[intnl].expecting === false) {
+	              callArgs.push(arg[intnl].evaluate(pool.getArgs(arg[intnl].length)));
+	            }
 	          } else {
 	            callArgs.push(arg);
 	          }
@@ -234,21 +271,21 @@
 	    };
 	  }
 
-	  var target = function target(param) {
+	  /**
+	   * The initial underscore function. It accepts various kinds of parameters:
+	   * A function: Creates a wrapper with placeholderify
+	   * A number: Create a named placeholder
+	   */
+	  var placeholder = function placeholder(param) {
 	    if (typeof param === 'function') {
 	      // This function is ready to accept placeholder parameters
 	      return placeholderify(param);
 	    }
 	  };
-	  target[is_] = true;
 
-	  // identical function for single placeholders to evaluate (expects 1 param)
-	  target[evaluate] = function (id) {
-	    return id[0];
-	  };
-	  target[len] = 1;
+	  placeholder[intnl] = new InternalState(false);
 
-	  var _ = new Proxy(target, initialHandler);
+	  var _ = new Proxy(placeholder, initialHandler);
 
 	  return _;
 	})();
