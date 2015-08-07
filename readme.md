@@ -47,7 +47,7 @@ var objects = [
 
 #### Mapping single properties
 
-Properties can directly be mapped with `_.propertylabel`:
+Properties can directly be mapped with `_.propertyName`:
 
 ```javascript
 objects.map(_.label);
@@ -74,7 +74,7 @@ objects.map(_.data.weight);
 
 #### Mapping method calls
 
-The method call syntax is no suprise for us.
+The method call syntax as expected.
 
 ```javascript
 [1, 2, 3].map(_.toString());
@@ -83,7 +83,7 @@ The method call syntax is no suprise for us.
 
 #### Mapping method calls with parameters
 
-Why not assign parameters to the calls? It is really simple.
+Want to assign parameters to the calls? It is really simple.
 
 ```javascript
 ['abc', 'def', 'ghi'].map(_.substr(1, 1));
@@ -114,14 +114,17 @@ In order to acceppt placeholders, functions need to be transformed with a functi
 function le(a, b) {
   return a <= b;
 };
+
+let transformed = _(le);
  
-[12, 16, 23].filter(_(le)(_, 20));
+[12, 16, 23].filter(transformed(_, 20));
 // =>  [12, 16]
 ```
 
 This is not much different from currying. It gets interesting when combined with attribute mapping:
 
 ```javascript
+// here we transform instantly
 let descending = _(function(a, b) {
   return b - a;
 });

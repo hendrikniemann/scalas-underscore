@@ -1,3 +1,5 @@
+'use strict';
+
 if(!_) {
   var _ = require('../src/index.js');
 }
@@ -69,9 +71,11 @@ describe('Readme examples', function() {
     function le(a, b) {
       return a <= b;
     };
+
+    var transformed = _(le);
  
     expect(
-      [12, 16, 23].filter(_(le)(_, 20))
+      [12, 16, 23].filter(transformed(_, 20))
     ).toEqual(
       [12, 16]
     );
