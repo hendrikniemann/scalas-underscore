@@ -15,24 +15,6 @@ if( typeof Proxy === 'object' ) {
   intnl = 'lkjagsgislkcjbksefvksljcbkvjeghvkjhkb';
 }
 
-/**
- * Small helper class to make argument handling easier
- */
-class ArgumentPool {
-  constructor(args) {
-    this.args = args;
-    this.currArg = 0;
-
-    if(!this.args.slice) {
-      this.args = Array.prototype.slice.call(this.args);
-    }
-  }
-
-  getArgs( amount ) {
-    this.currArg += amount;
-    return this.args.slice(this.currArg - amount, this.currArg);
-  }
-}
 
 /**
  * the standard handler, when the target function is already created
@@ -88,11 +70,11 @@ let initialHandler = {
         // Proxy gets lost otherwise?
         return new Proxy(_, underscoreHandler);
       } else {
-        return _[intnl].evaluate(args);
+        return _[intnl].evaluate(args, 0);
       }
     };
 
-    _[intnl] = new InternalState(false, [{
+    _[intnl] = new InternalState(target[intnl].expecting, [{
       propName: propKey,
       called: false,
       args: [],
@@ -108,7 +90,12 @@ class InternalState {
 
   constructor( expecting, callStack ) {
     this.expecting = expecting;
-    this.length = 1;
+
+    if( this.expecting === false ) {
+      this.length = 1;
+    } else {
+      this.length = false;
+    }
     
     if ( typeof callStack !== 'undefined' ) {
       this.callStack = callStack;
@@ -117,11 +104,11 @@ class InternalState {
     }
   }
 
-  evaluate( args ) {
-
+  evaluate( args, argNum ) {
+    
     // if this is a single unnamed parameter
     if( this.callStack.length === 0 && this.expecting === false ) {
-      return args[0];
+      return args[ argNum ];
     }
 
     // if this is a single named parameter
@@ -129,18 +116,14 @@ class InternalState {
       return args[ this.expecting ];
     }
 
-    if( this.expecting === false ) {
-      return this.evaluateUnnamed( args );
-    }
-  }
-
-  evaluateUnnamed( args ) {
     let stack = this.callStack;
+    let val;
 
-    let pool = new ArgumentPool(args);
-
-    // set starting 
-    let val = pool.getArgs(1)[0];
+    if( this.expecting === false) {
+      val = args[ argNum++ ];
+    } else {
+      val = args[ this.expecting ];
+    }
 
     // go through call stack and apply attributes and calls
     for( let i = 0, le = stack.length; i < le; i++ ) {
@@ -156,8 +139,10 @@ class InternalState {
         for( let k = 0, al = curr.args.length; k < al; k++ ) {
           let currArg = curr.args[k];
           if(currArg[intnl]) {
-            // call the evaluation with needed amount of arguments
-            callArgs.push(currArg[intnl].evaluate( pool.getArgs(currArg[intnl].length) ));
+            callArgs.push(
+              currArg[intnl].evaluate( args, argNum )
+            );
+            argNum += currArg[intnl].length;
           } else {
             callArgs.push(currArg);
           }
@@ -169,8 +154,8 @@ class InternalState {
     }
     return val;
   }
-}
 
+}
 
 
 /**
@@ -182,16 +167,24 @@ function placeholderify( origin ) {
   return function() {
     const bound = arguments;
 
+    const placeholders = Array.prototype.filter.call(bound, function(e) {
+      return (typeof e[intnl] !== 'undefined');
+    }).length;
+
+    if(placeholders === 0) {
+      return origin.apply(this, bound);
+    }
+
     return function() {
-      const pool = new ArgumentPool(arguments);
+      const args = Array.prototype.slice.call(arguments);
       const callArgs = [];
+      let argNum = 0;
 
       for(let i = 0, arglen = bound.length; i < arglen; i++) {
         let arg = bound[i];
         if( arg[intnl] ) {
-          if( arg[intnl].expecting === false) {
-            callArgs.push(arg[intnl].evaluate(pool.getArgs(arg[intnl].length)));
-          }
+          callArgs.push(arg[intnl].evaluate( args, argNum ));
+          argNum += arg[intnl].length;
         } else {
           callArgs.push(arg);
         }
@@ -203,6 +196,15 @@ function placeholderify( origin ) {
   };
 }
 
+function makeNamedPlaceholder( paramNumber ) {
+  let namedPlaceholder = function() {
+    return arguments[paramNumber];
+  };
+  namedPlaceholder[intnl] = new InternalState( paramNumber );
+
+  return new Proxy(namedPlaceholder, initialHandler);
+}
+
 /**
  * The initial underscore function. It accepts various kinds of parameters:
  * A function: Creates a wrapper with placeholderify
@@ -212,6 +214,8 @@ let placeholder = function( param ) {
   if( typeof param === 'function' ) {
     // This function is ready to accept placeholder parameters
     return placeholderify( param );
+  } else if ( typeof param === 'number' ) {
+    return makeNamedPlaceholder( param );
   }
 };
 

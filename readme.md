@@ -136,6 +136,48 @@ objects
 // => 'object3, object1, object2'
 ```
 
+### Named parameters
+
+Named parameters let you specify the parameter, that is inserted. In the previous examples parameters were inserted from left to right. With this behaviour we are not able to use the same parameter twice, or change the order of parameters. 
+
+```javascript
+['a', 'b', 'c'].reduce(_.concat(_));
+// => 'abc'
+```
+
+What if we want the first parameter concated on the second parameter in order to receive the string backwards? Here named parameters come in handy. Named placeholders can be created by calling the `_` function with the parameter number. The first parameter is returned when calling the function with 0, since arrays and javascripts `arguments` variable in functions start with 0:
+
+```javascript
+['a', 'b', 'c'].reduce(_(1).concat(_(0)));
+```
+
+It might be useful to create variables for the named placeholders:
+
+```javascript
+// store our named placeholders in variables
+const _0 = _(0);
+const _1 = _(1);
+// If you don't like starting with 0 you can use
+//   _1 = _(0) or x1 = _(0)
+
+// Now use the generated variables
+['a', 'b', 'c'].reduce(_1.concat(_0));
+// => 'cba'
+```
+
+You can use named placeholders just as you use unnamed placeholders. Though the parameter loses the function characteristics for transforming functions and creating named placeholders:
+
+```javascript
+const _0 = _(0);
+
+_0(function() {}); // doesn't work, returns the function
+const _1 = _0(0); // doesn't work either, returns 0
+```
+
+Both function calls on `_(0)` return the first argument, calls on `_(1)` will return the second argument and so on.
+
+You can in theory use named placehodlers with unnamed placeholders. This is extremely discouraged and not tested. You should either use named placeholders or unnamed placeholders in the same function.
+
 ## Run the tests
 
 ### Browser
